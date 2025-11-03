@@ -1,0 +1,397 @@
+<!--
+    WIDGET TESTING URLS:
+    - http://localhost:2137/widget/timer (Main Timer)
+    - http://localhost:2137/widget/youtube (YouTube Stats)
+    - http://localhost:2137/widget/tiktok (TikTok Stats)
+    - http://localhost:2137/widget/instagram (Instagram Stats)
+    - http://localhost:2137/widget/facebook (Facebook Stats)
+    - http://localhost:2137/widget/total-followers (Total Followers)
+    - http://localhost:2137/widget/total-time (Total Time Added)
+    - http://localhost:2137/widget/goal (Follower Goal Progress)
+    - http://localhost:2137/widget/audio (Sound Alert Player - invisible)
+
+    Notes for Live Stream Integration:
+    - Add a "Browser" source in your live streaming software.
+    - Set the URL to the specific widget path you want to display.
+    - Recommended dimensions:
+        * Timer: 800x200
+        * Platform stats: 400x150 each
+        * Total stats: 600x150
+        * Goal: 800x100
+        * Audio: 1x1 (invisible)
+    - Check "Shutdown source when not visible" for performance.
+    - Set FPS to 30.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Follower-Fueled Timer Widgets</title>
+    <style>
+        body {
+            background: transparent;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .widget-container {
+            position: relative;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* Timer Widget */
+        #timer-widget {
+            font-size: 120px;
+            font-weight: bold;
+            font-family: '''Courier New''', Courier, monospace;
+        }
+        .time-added-animation {
+            position: absolute;
+            font-size: 40px;
+            color: #4CAF50;
+            animation: fade-scale-up 2s ease-out;
+        }
+        @keyframes fade-scale-up {
+            0% { opacity: 1; transform: scale(0.5); }
+            100% { opacity: 0; transform: scale(1.5); }
+        }
+        .hype-mode-glow {
+            animation: pulse-glow 1s infinite alternate;
+        }
+        @keyframes pulse-glow {
+            from { text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073; }
+            to { text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6; }
+        }
+
+        /* Platform Stat Widgets */
+        .platform-widget-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+        }
+        .platform-logo-container {
+            flex-shrink: 0;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px; /* For emoji */
+        }
+        .platform-logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .platform-stats-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        .follower-total {
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        .follower-session {
+            position: absolute;
+            top: -10px;
+            right: -35px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #4CAF50;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        /* Goal Widget */
+        #goal-widget { flex-direction: column; }
+        .goal-text { font-size: 48px; }
+        .progress-bar-container {
+            width: 80%;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            margin-top: 20px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 20px;
+            transition: width 0.5s ease, background-color 0.5s ease;
+        }
+        .celebration-animation {
+            animation: celebration 1.5s infinite;
+        }
+        @keyframes celebration {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- All widget containers -->
+    <div id="timer-widget" class="widget-container">
+        <span id="timer-display">00:00:00</span>
+    </div>
+
+    <div id="youtube-widget" class="widget-container">
+        <div class="platform-widget-content">
+            <div class="platform-logo-container" id="youtube-logo-container">📺</div>
+            <div class="platform-stats-container">
+                <div class="follower-total" id="youtube-total">0</div>
+                <div class="follower-session" id="youtube-session">+0</div>
+            </div>
+        </div>
+    </div>
+    <div id="tiktok-widget" class="widget-container">
+        <div class="platform-widget-content">
+            <div class="platform-logo-container" id="tiktok-logo-container">🎵</div>
+            <div class="platform-stats-container">
+                <div class="follower-total" id="tiktok-total">0</div>
+                <div class="follower-session" id="tiktok-session">+0</div>
+            </div>
+        </div>
+    </div>
+    <div id="instagram-widget" class="widget-container">
+        <div class="platform-widget-content">
+            <div class="platform-logo-container" id="instagram-logo-container">📷</div>
+            <div class="platform-stats-container">
+                <div class="follower-total" id="instagram-total">0</div>
+                <div class="follower-session" id="instagram-session">+0</div>
+            </div>
+        </div>
+    </div>
+    <div id="facebook-widget" class="widget-container">
+        <div class="platform-widget-content">
+            <div class="platform-logo-container" id="facebook-logo-container">👥</div>
+            <div class="platform-stats-container">
+                <div class="follower-total" id="facebook-total">0</div>
+                <div class="follower-session" id="facebook-session">+0</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="total-followers-widget" class="widget-container">
+        <div style="position: relative;">
+            <span id="total-followers-label" style="font-size: 48px;">Total New Followers:</span> <span id="total-followers-display" style="font-size: 60px; margin-left: 20px;">0</span>
+        </div>
+    </div>
+
+    <div id="total-time-widget" class="widget-container">
+        Total Time Added: <span id="total-time-display" style="font-size: 60px; margin-left: 20px;">00:00:00</span>
+    </div>
+
+    <div id="goal-widget" class="widget-container">
+        <div id="goal-text" class="goal-text">Follower Goal: 0 / 1000</div>
+        <div class="progress-bar-container">
+            <div id="goal-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
+        </div>
+    </div>
+
+    <div id="audio-widget" class="widget-container">
+        <audio id="alert-sound" src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU9vT19JTU5BTFRFUklGUEVTSElWRQAAAP//"></audio>
+    </div>
+    
+    <div id="error-widget" class="widget-container">
+        Invalid Widget URL
+    </div>
+
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io("http://localhost:2137");
+
+        function formatTime(ms) {
+            if (ms < 0) ms = 0;
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // --- URL Routing ---
+        const path = window.location.pathname;
+        const widgetName = path.split('/').pop();
+        const activeWidget = document.getElementById(`${widgetName}-widget`);
+
+        if (activeWidget) {
+            activeWidget.style.display = 'flex';
+        } else {
+            document.getElementById('error-widget').style.display = 'flex';
+        }
+
+        // --- Socket.IO Listener ---
+        socket.on('state-update', (state) => {
+            if (!activeWidget) return;
+
+            switch (activeWidget.id) {
+                case 'timer-widget':
+                    updateTimerWidget(state);
+                    break;
+                case 'youtube-widget':
+                case 'tiktok-widget':
+                case 'instagram-widget':
+                case 'facebook-widget':
+                    updatePlatformWidget(state, widgetName);
+                    break;
+                case 'total-followers-widget':
+                    updateTotalFollowersWidget(state);
+                    break;
+                case 'total-time-widget':
+                    updateTotalTimeWidget(state);
+                    break;
+                case 'goal-widget':
+                    updateGoalWidget(state);
+                    break;
+                case 'audio-widget':
+                    updateAudioWidget(state);
+                    break;
+            }
+        });
+
+        // --- Widget Update Functions ---
+        function updateTimerWidget(state) {
+            const timerDisplay = document.getElementById('timer-display');
+            timerDisplay.textContent = formatTime(state.timer.currentTime);
+
+            if (state.timer.isRunning && !state.timer.isPaused) {
+                timerDisplay.style.color = '#4CAF50'; // green
+            } else if (state.timer.isPaused) {
+                timerDisplay.style.color = '#FF9800'; // orange
+            } else {
+                timerDisplay.style.color = '#f44336'; // red
+            }
+            
+            if(state.hypeModeActive) {
+                timerDisplay.classList.add('hype-mode-glow');
+            } else {
+                timerDisplay.classList.remove('hype-mode-glow');
+            }
+        }
+
+        function updatePlatformWidget(state, platform) {
+            const platformData = state.platformStats[platform];
+            const config = state.config?.platforms?.[platform];
+            const logo = config?.logo;
+            
+            const logoContainer = document.getElementById(`${platform}-logo-container`);
+            if (logoContainer) {
+                logoContainer.innerHTML = '';
+                if (logo) {
+                    const img = document.createElement('img');
+                    img.src = logo;
+                    img.onerror = () => { 
+                        const emojis = { youtube: '📺', tiktok: '🎵', instagram: '📷', facebook: '👥' };
+                        logoContainer.innerHTML = emojis[platform];
+                    };
+                    logoContainer.appendChild(img);
+                } else {
+                    const emojis = { youtube: '📺', tiktok: '🎵', instagram: '📷', facebook: '👥' };
+                    logoContainer.innerHTML = emojis[platform];
+                }
+            }
+
+            const totalElement = document.getElementById(`${platform}-total`);
+            const sessionElement = document.getElementById(`${platform}-session`);
+
+            if (totalElement && platformData) {
+                totalElement.textContent = platformData.total || 0;
+            }
+            if (sessionElement && platformData) {
+                sessionElement.style.display = config?.showSessionFollowers ? 'block' : 'none';
+                sessionElement.textContent = `+${platformData.sessionNew || 0}`;
+            }
+        }
+        
+        function updateTotalFollowersWidget(state) {
+            const config = state.config.customization.totalFollowers;
+            const displayEl = document.getElementById('total-followers-display');
+            const labelEl = document.getElementById('total-followers-label');
+            let mainText = '';
+            let sessionText = '';
+
+            if (config.mode === 'total') {
+                labelEl.textContent = 'Total Followers:';
+                const totalFollowers = Object.values(state.platformStats).reduce((acc, stats) => acc + (stats.total || 0), 0);
+                mainText = totalFollowers;
+                if (config.showSessionDiff) {
+                    sessionText = `+${state.totalSessionFollowers}`;
+                }
+            } else {
+                labelEl.textContent = 'Total New Followers:';
+                mainText = state.totalSessionFollowers;
+            }
+
+            displayEl.innerHTML = `${mainText}<span class="follower-session" style="font-size: 0.5em; color: #4CAF50; position: absolute; top: -10px; right: -35px;">${sessionText}</span>`;
+        }
+
+        function updateTotalTimeWidget(state) {
+            document.getElementById('total-time-display').textContent = formatTime(state.totalSessionTimeAdded);
+        }
+
+        function updateGoalWidget(state) {
+            const config = state.config.customization.followerGoal;
+            const goal = state.config.goal;
+            let current = 0;
+
+            if (config.mode === 'total') {
+                current = Object.values(state.platformStats).reduce((acc, stats) => acc + (stats.total || 0), 0);
+            } else {
+                current = state.totalSessionFollowers;
+            }
+
+            const percentage = goal > 0 ? (current / goal) * 100 : 0;
+            
+            document.getElementById('goal-text').textContent = `Follower Goal: ${current} / ${goal}`;
+            const progressBar = document.getElementById('goal-progress-bar');
+            progressBar.style.width = `${Math.min(100, percentage)}%`;
+
+            if (percentage >= 100) {
+                progressBar.style.backgroundColor = '#4CAF50';
+                progressBar.classList.add('celebration-animation');
+            } else {
+                progressBar.classList.remove('celebration-animation');
+                if (percentage >= 80) {
+                    progressBar.style.backgroundColor = '#4CAF50';
+                } else if (percentage >= 50) {
+                    progressBar.style.backgroundColor = '#FF9800';
+                } else {
+                    progressBar.style.backgroundColor = '#f44336';
+                }
+            }
+        }
+        
+        function updateAudioWidget(state) {
+            if (state.lastSoundEvent && state.config.customization.soundEnabled) {
+                const audio = document.getElementById('alert-sound');
+                const sound = state.config.customization.sounds[state.lastSoundEvent];
+                const soundSrc = sound && sound !== 'default' ? `/${sound}` : 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU9vT19JTU5BTFRFUklGUEVTSElWRQAAAP//';
+                if (audio.src !== soundSrc) {
+                    audio.src = soundSrc;
+                }
+                audio.volume = state.config.customization.soundVolume / 100;
+                audio.play().catch(e => console.error("Audio play failed:", e));
+                // Reset lastSoundEvent to prevent re-triggering
+                socket.emit('reset-last-sound-event');
+            }
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Follower-Fueled Timer - Control Panel</title>
+    <style>
+        :root {
+            --color-success: #4CAF50;
+            --color-warning: #FF9800;
+            --color-error: #f44336;
+            --color-info: #2196F3;
+            --color-bg: #f5f5f5;
+            --color-card: #ffffff;
+            --color-text: #333;
+            --color-text-light: #888;
+            --font-monospace: 'Courier New', Courier, monospace;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background-color: var(--color-card);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        .status-indicator {
+            padding: 5px 10px;
+            border-radius: 5px;
+            color: white;
+        }
+        .status-indicator.connected { background-color: var(--color-success); }
+        .status-indicator.disconnected { background-color: var(--color-error); }
+
+        .timer-display {
+            font-family: var(--font-monospace);
+            font-size: 4em;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .timer-status-badge {
+            display: block;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .timer-status-badge.running { color: var(--color-success); }
+        .timer-status-badge.paused { color: var(--color-warning); }
+        .timer-status-badge.stopped { color: var(--color-error); }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        .btn-green { background-color: var(--color-success); }
+        .btn-yellow { background-color: var(--color-warning); }
+        .btn-red { background-color: var(--color-error); }
+        .btn-blue { background-color: var(--color-info); }
+
+        .platform-card {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .platform-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .api-status {
+            font-size: 0.8em;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-left: 10px;
+        }
+        .api-status.ok {
+            background-color: var(--color-success);
+            color: white;
+        }
+        .api-status.error {
+            background-color: var(--color-error);
+            color: white;
+        }
+
+        .platform-header input[type="checkbox"] {
+            width: auto;
+        }
+
+        .event-log {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: var(--font-monospace);
+            font-size: 0.9em;
+        }
+
+        .follower-count-display {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .follower-count-display .label {
+            font-weight: bold;
+        }
+        .follower-count-display .count {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--color-info);
+        }
+        .follower-count-display .session {
+            font-size: 0.9em;
+            color: var(--color-text-light);
+            margin-left: 5px;
+        }
+
+      .widget-urls {
+        grid-column: 1 / -1;
+        margin-top: 30px;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      
+      .widget-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .widget-item {
+        display: grid;
+        grid-template-columns: 150px 1fr auto auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      
+      .widget-name {
+        font-weight: 500;
+      }
+      
+      .widget-url {
+        font-family: monospace;
+        font-size: 12px;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        background: #f9f9f9;
+      }
+      
+      .copy-btn {
+        padding: 5px 15px;
+        background: #2196F3;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      
+      .copy-btn:hover {
+        background: #1976D2;
+      }
+      
+      .dimensions {
+        font-size: 11px;
+        color: #666;
+      }
+
+      .input-error {
+        border: 2px solid red !important;
+      }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 250px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -125px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header card">
+        <h1>Follower-Fueled Timer - Control Panel</h1>
+        <div>
+            <span id="connection-status" class="status-indicator disconnected">Disconnected</span>
+            <span id="server-time"></span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h3>Timer Controls</h3>
+            <h2 class="timer-display" id="timer-display">00:00:00</h2>
+            <span class="timer-status-badge stopped" id="timer-status">Stopped</span>
+            <div class="form-group">
+                <label for="initial-time">Initial Time (minutes)</label>
+                <input type="number" id="initial-time" value="60">
+            </div>
+            <div class="form-group">
+                <label for="time-per-follower">Time per Follower (seconds)</label>
+                <input type="number" id="time-per-follower" value="30">
+            </div>
+            <div class="form-group">
+                <label for="polling-interval">Polling Interval (seconds)</label>
+                <input type="number" id="polling-interval" value="10">
+            </div>
+            <div class="button-group">
+                <button id="start-timer" class="btn btn-green">Start Timer</button>
+                <button id="pause-resume-timer" class="btn btn-yellow" disabled>Pause</button>
+                <button id="stop-reset-timer" class="btn btn-red">Stop/Reset</button>
+            </div>
+            <div class="button-group" style="margin-top: 10px;">
+                <button class="btn btn-blue" onclick="addTime(30000)">+30s</button>
+                <button class="btn btn-blue" onclick="addTime(60000)">+1m</button>
+                <button class="btn btn-blue" onclick="addTime(300000)">+5m</button>
+                <button class="btn btn-blue" onclick="subtractTime(30000)">-30s</button>
+                <button class="btn btn-blue" onclick="subtractTime(60000)">-1m</button>
+            </div>
+            <div class="form-group" style="margin-top: 20px;">
+                <label>Custom Time Control</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="custom-hours" placeholder="H" value="0" min="0" max="24">
+                    <input type="number" id="custom-minutes" placeholder="M" value="0" min="0" max="59">
+                    <input type="number" id="custom-seconds" placeholder="S" value="0" min="0" max="59">
+                </div>
+                <div class="button-group" style="margin-top: 10px;">
+                    <button id="add-custom-time" class="btn btn-green">Add</button>
+                    <button id="subtract-custom-time" class="btn btn-red">Sub</button>
+                    <button id="reset-custom-time" class="btn btn-yellow">Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Session Stats</h3>
+            <p>Total Session Followers: <span id="session-followers">0</span></p>
+            <p>Total Time Added: <span id="session-time-added">00:00:00</span></p>
+            <p>Session Start Time: <span id="session-start-time">N/A</span></p>
+            <button id="reset-session" class="btn btn-red">Reset Session</button>
+        </div>
+
+        <div class="card">
+            <h3>Advanced Settings</h3>
+            <div class="form-group">
+                <label for="follower-goal">Follower Goal</label>
+                <input type="number" id="follower-goal" value="0" min="0">
+            </div>
+            <div class="form-group">
+                <label for="sound-enabled">Enable Sound Alerts</label>
+                <input type="checkbox" id="sound-enabled" checked style="width: auto;">
+            </div>
+            <div class="form-group">
+                <label for="sound-volume">Sound Volume</label>
+                <input type="range" id="sound-volume" min="0" max="100" value="50">
+            </div>
+            <div class="form-group">
+                <label for="new-follower-sound-upload">New Follower Sound</label>
+                <input type="file" id="new-follower-sound-upload" accept=".mp3,.wav,.ogg">
+                <button id="reset-new-follower-sound" class="btn btn-red" style="margin-top: 5px;">Reset to Default</button>
+            </div>
+            <div class="form-group">
+                <label for="goal-achieved-sound-upload">Goal Achieved Sound</label>
+                <input type="file" id="goal-achieved-sound-upload" accept=".mp3,.wav,.ogg">
+                <button id="reset-goal-achieved-sound" class="btn btn-red" style="margin-top: 5px;">Reset to Default</button>
+            </div>
+            <div class="form-group">
+                <label for="timer-end-sound-upload">Timer End Sound</label>
+                <input type="file" id="timer-end-sound-upload" accept=".mp3,.wav,.ogg">
+                <button id="reset-timer-end-sound" class="btn btn-red" style="margin-top: 5px;">Reset to Default</button>
+            </div>
+            <div class="form-group">
+                <label for="total-followers-mode">"Total Followers" Widget Mode</label>
+                <select id="total-followers-mode">
+                    <option value="session">Show Session Followers</option>
+                    <option value="total">Show Total Followers</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="total-followers-show-diff">Show Session Difference on Total Followers Widget</label>
+                <input type="checkbox" id="total-followers-show-diff" style="width: auto;">
+            </div>
+            <div class="form-group">
+                <label for="follower-goal-mode">"Follower Goal" Widget Mode</label>
+                <select id="follower-goal-mode">
+                    <option value="session">Session Follower Goal</option>
+                    <option value="total">Total Follower Goal</option>
+                </select>
+            </div>
+        </div>
+
+                <!-- Platform Cards -->
+
+                <div class="card platform-card">
+
+                    <div class="platform-header">
+
+                        <input type="checkbox" id="youtube-enabled">
+
+                        <label for="youtube-enabled">📺 YouTube</label>
+
+                        <span id="youtube-api-status" class="api-status"></span>
+
+                        <input type="checkbox" id="youtube-show-session-followers" checked style="margin-left: auto;">
+
+                        <label for="youtube-show-session-followers">Show new</label>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="youtube-use-api">Use API</label>
+
+                        <input type="checkbox" id="youtube-use-api" style="width: auto;">
+
+                    </div>
+
+        
+
+                    <div class="form-group api-only" style="display: none;">
+
+                        <label for="youtube-api-key">API Key</label>
+
+                        <div style="display: flex; gap: 5px;">
+
+                            <input type="text" id="youtube-api-key" placeholder="Your YouTube API Key">
+
+                        </div>
+
+                    </div>
+
+                    <div class="follower-count-display">
+
+                        <span class="label">Current Followers: </span>
+
+                        <span class="count" id="youtube-count">--</span>
+
+                        <span class="session" id="youtube-session-count">(+0 this session)</span>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="youtube-url">YouTube Studio URL:</label>
+
+                        <div style="display: flex; gap: 5px;">
+
+                            <input type="text" id="youtube-url" placeholder="https://studio.youtube.com/channel/YOUR_CHANNEL_ID">
+
+                            <button id="youtube-autofill" class="btn btn-blue">Auto-Detect</button>
+
+                            <button id="youtube-open-url" class="btn btn-blue" disabled>Open URL</button>
+
+                        </div>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="youtube-selector">CSS Selector:</label>
+
+                        <input type="text" id="youtube-selector" placeholder=".metric-value-big.style-scope.ytcd-channel-facts-item">
+
+                        <div class="tooltip">
+
+                          <span style="font-style: italic; color: #666; font-size: 0.85em;">Get the <b>Full XPath</b> for the most reliable results. ⓘ</span>
+
+                          <div class="tooltiptext">Open URL > Right Click on the follower count > Inspect > Right Click on the correct HTML element in the new window > Copy > Copy full XPath</div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="youtube-logo-upload">Custom Logo (PNG/JPG)</label>
+
+                        <input type="file" id="youtube-logo-upload" accept="image/png, image/jpeg">
+
+                        <button id="youtube-logo-reset" class="btn btn-red" style="margin-top: 5px;">Reset Logo</button>
+
+                    </div>
+
+                    <div class="button-group">
+
+                        <button id="youtube-test" class="btn btn-blue">Test Selector</button>
+
+        
+
+                    </div>
+
+                </div>
+
+                <div class="card platform-card">
+
+                    <div class="platform-header">
+
+                        <input type="checkbox" id="tiktok-enabled">
+
+                        <label for="tiktok-enabled">🎵 TikTok</label>
+
+                        <span id="tiktok-api-status" class="api-status"></span>
+
+                        <input type="checkbox" id="tiktok-show-session-followers" checked style="margin-left: auto;">
+
+                        <label for="tiktok-show-session-followers">Show new</label>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="tiktok-use-api">Use API</label>
+
+                        <input type="checkbox" id="tiktok-use-api" style="width: auto;" disabled title="TikTok API is not yet supported.">
+
+                    </div>
+
+                    <div class="form-group" style="display: none;">
+
+                        <label for="tiktok-api-key">API Key</label>
+
+                        <input type="text" id="tiktok-api-key" placeholder="Your TikTok API Key">
+
+                    </div>
+
+                    <div class="follower-count-display">
+
+                        <span class="label">Current Followers: </span>
+
+                        <span class="count" id="tiktok-count">--</span>
+
+                        <span class="session" id="tiktok-session-count">(+0 this session)</span>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="tiktok-url">Studio URL:</label>
+
+                        <input type="text" id="tiktok-url" value="https://www.tiktok.com/tiktokstudio">
+
+                        <small style="color: #666; font-size: 0.85em;">TikTok Studio URL is universal (same for all users)</small>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="tiktok-selector">CSS Selector:</label>
+
+                        <input type="text" id="tiktok-selector" placeholder=".TUXText.TUXText--tiktok-sans.TUXText--weight-medium">
+
+                        <div class="tooltip">
+
+                          <span style="font-style: italic; color: #666; font-size: 0.85em;">Get the <b>Full XPath</b> for the most reliable results. ⓘ</span>
+
+                          <div class="tooltiptext">Open URL > Right Click on the follower count > Inspect > Right Click on the correct HTML element in the new window > Copy > Copy full XPath</div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="tiktok-logo-upload">Custom Logo (PNG/JPG)</label>
+
+                        <input type="file" id="tiktok-logo-upload" accept="image/png, image/jpeg">
+
+                        <button id="tiktok-logo-reset" class="btn btn-red" style="margin-top: 5px;">Reset Logo</button>
+
+                    </div>
+
+                    <div class="button-group">
+
+                        <button id="tiktok-test" class="btn btn-blue">Test Selector</button>
+
+        
+
+                    </div>
+
+                </div>
+
+                <div class="card platform-card">
+
+                    <div class="platform-header">
+
+                        <input type="checkbox" id="instagram-enabled">
+
+                        <label for="instagram-enabled">📷 Instagram</label>
+
+                        <span id="instagram-api-status" class="api-status"></span>
+
+                        <input type="checkbox" id="instagram-show-session-followers" checked style="margin-left: auto;">
+
+                        <label for="instagram-show-session-followers">Show new</label>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="instagram-use-api">Use API</label>
+
+                        <input type="checkbox" id="instagram-use-api" style="width: auto;">
+
+                    </div>
+
+                    <div class="form-group api-only" style="display: none;">
+
+                        <label for="instagram-api-key">API Key</label>
+
+                        <input type="text" id="instagram-api-key" placeholder="Your Instagram API Key">
+
+                    </div>
+
+                    <div class="form-group api-only" style="display: none;">
+
+                        <label for="instagram-access-token">Instagram Access Token</label>
+
+                        <input type="text" id="instagram-access-token" placeholder="Your Instagram Access Token">
+
+                    </div>
+
+                    <div class="form-group api-only" id="instagram-user-id-group" style="display: none;">
+
+                        <label for="instagram-user-id">Instagram Meta Business Suite ID</label>
+
+                        <input type="text" id="instagram-user-id" placeholder="Your Instagram User ID">
+
+                    </div>
+
+                    <div class="follower-count-display">
+
+                        <span class="label">Current Followers: </span>
+
+                        <span class="count" id="instagram-count">--</span>
+
+                        <span class="session" id="instagram-session-count">(+0 this session)</span>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="instagram-url">Instagram Meta Business Suite:</label>
+
+                        <div style="display: flex; gap: 5px;">
+
+                            <input type="text" id="instagram-url" placeholder="https://business.facebook.com/latest/insights/people">
+
+                            <button id="instagram-autofill" class="btn btn-blue">Auto-Detect</button>
+
+                            <button id="instagram-open-url" class="btn btn-blue" disabled>Open URL</button>
+
+                        </div>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="instagram-selector">CSS Selector:</label>
+
+                        <input type="text" id="instagram-selector" placeholder=".x1b0d499.x1s65kcs.x1ok221b.x1vzochd.x1gkuw3f.x12wdt2z">
+
+                        <div class="tooltip">
+
+                          <span style="font-style: italic; color: #666; font-size: 0.85em;">Get the <b>Full XPath</b> for the most reliable results. ⓘ</span>
+
+                          <div class="tooltiptext">Open URL > Right Click on the follower count > Inspect > Right Click on the correct HTML element in the new window > Copy > Copy full XPath</div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="instagram-logo-upload">Custom Logo (PNG/JPG)</label>
+
+                        <input type="file" id="instagram-logo-upload" accept="image/png, image/jpeg">
+
+                        <button id="instagram-logo-reset" class="btn btn-red" style="margin-top: 5px;">Reset Logo</button>
+
+                    </div>
+
+                    <div class="button-group">
+
+                        <button id="instagram-test" class="btn btn-blue">Test Selector</button>
+
+        
+
+                    </div>
+
+                </div>
+
+                <div class="card platform-card">
+
+                    <div class="platform-header">
+
+                        <input type="checkbox" id="facebook-enabled">
+
+                        <label for="facebook-enabled">👥 Facebook</label>
+
+                        <span id="facebook-api-status" class="api-status"></span>
+
+                        <input type="checkbox" id="facebook-show-session-followers" checked style="margin-left: auto;">
+
+                        <label for="facebook-show-session-followers">Show new</label>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="facebook-use-api">Use API</label>
+
+                        <input type="checkbox" id="facebook-use-api" style="width: auto;">
+
+                    </div>
+
+                    <div class="form-group api-only" style="display: none;">
+
+                        <label for="facebook-api-key">API Key</label>
+
+                        <input type="text" id="facebook-api-key" placeholder="Your Facebook API Key">
+
+                    </div>
+
+                    <div class="form-group api-only" style="display: none;">
+
+                        <label for="facebook-access-token">Facebook Access Token</label>
+
+                        <input type="text" id="facebook-access-token" placeholder="Your Facebook Access Token">
+
+                    </div>
+
+                    <div class="form-group api-only" id="facebook-page-id-group" style="display: none;">
+
+                        <label for="facebook-page-id">Facebook Meta Business Suite ID</label>
+
+                        <input type="text" id="facebook-page-id" placeholder="Your Facebook Page ID">
+
+                    </div>
+
+                     <div class="follower-count-display">
+
+                        <span class="label">Current Followers: </span>
+
+                        <span class="count" id="facebook-count">--</span>
+
+                        <span class="session" id="facebook-session-count">(+0 this session)</span>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="facebook-url">Facebook Meta Business Suite:</label>
+
+                        <div style="display: flex; gap: 5px;">
+
+                            <input type="text" id="facebook-url" placeholder="https://business.facebook.com/latest/insights/people">
+
+                            <button id="facebook-autofill" class="btn btn-blue">Auto-Detect</button>
+
+                            <button id="facebook-open-url" class="btn btn-blue" disabled>Open URL</button>
+
+                        </div>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="facebook-selector">CSS Selector:</label>
+
+                        <input type="text" id="facebook-selector" placeholder=".x1b0d499.x1s65kcs.x1ok221b.x1vzochd.x1gkuw3f.x12wdt2z">
+
+                        <div class="tooltip">
+
+                          <span style="font-style: italic; color: #666; font-size: 0.85em;">Get the <b>Full XPath</b> for the most reliable results. ⓘ</span>
+
+                          <div class="tooltiptext">Open URL > Right Click on the follower count > Inspect > Right Click on the correct HTML element in the new window > Copy > Copy full XPath</div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="facebook-logo-upload">Custom Logo (PNG/JPG)</label>
+
+                        <input type="file" id="facebook-logo-upload" accept="image/png, image/jpeg">
+
+                        <button id="facebook-logo-reset" class="btn btn-red" style="margin-top: 5px;">Reset Logo</button>
+
+                    </div>
+
+                    <div class="button-group">
+
+                        <button id="facebook-test" class="btn btn-blue">Test Selector</button>
+
+        
+
+                    </div>
+
+                </div>
+
+        <div class="card">
+            <h3>Live Event Log</h3>
+            <div id="event-log" class="event-log"></div>
+            <div class="button-group" style="margin-top: 10px;">
+                <button id="clear-log" class="btn btn-yellow">Clear Log</button>
+                <button id="export-log" class="btn btn-blue">Export Log</button>
+            </div>
+        </div>
+
+        <section class="card widget-urls">
+            <h3>Widget URLs</h3>
+            <p class="help-text">Add these URLs as Browser Sources in your live streaming software</p>
+            <div class="widget-list">
+                <div class="widget-item">
+                    <span class="widget-name">Main Timer</span>
+                    <input type="text" class="widget-url" readonly value="http://localhost:2137/widget/timer">
+                    <button class="copy-btn" data-url="http://localhost:2137/widget/timer">Copy</button>
+                    <span class="dimensions">Recommended: 800×200</span>
+                </div>
+                <div class="widget-item">
+                    <span class="widget-name">YouTube Stats</span>
+                    <input type="text" class="widget-url" readonly value="http://localhost:2137/widget/youtube">
+                    <button class="copy-btn" data-url="http://localhost:2137/widget/youtube">Copy</button>
+                    <span class="dimensions">Recommended: 400×150</span>
+                </div>
+                <div class="widget-item">
+                    <span class="widget-name">TikTok Stats</span>
+                    <input type="text" class="widget-url" readonly value="http://localhost:2137/widget/tiktok">
+                    <button class="copy-btn" data-url="http://localhost:2137/widget/tiktok">Copy</button>
+                    <span class="dimensions">Recommended: 400×150</span>
+                </div>
+                <div class="widget-item">
+                    <span class="widget-name">Instagram Stats</span>
+                    <input type="text" class="widget-url" readonly value="http://localhost:2137/widget/instagram">
+                    <button class="copy-btn" data-url="http://localhost:2137/widget/instagram">Copy</button>
+                    <span class="dimensions">Recommended: 400×150</span>
+                </div>
+                <div class="widget-item">
+                    <span class="widget-name">Facebook Stats</span>
+                    <input type="text" class="widget-url" readonly value="http://localhost:2137/widget/facebook">
+                    <button class="copy-btn" data-url="http://localhost:2137/widget/facebook">Copy</button>
+                    <span class="dimensions">Recommended: 400×150</span>
+                </div>
+                <div class="widget-item">
+                    <span class="widget-name">Total Followers</span>
+                    <input type="text" class="widget-url" readonly value="http://localhost:2137/widget/total-followers">
+                    <button class="copy-btn" data-url="http://localhost:2137/widget/total-followers">Copy</button>
+                    <span class="dimensions">Recommended: 600×150</span>
+                </div>
+                <div class="widget-item">
+                    <span class="widget-name">Total Time Added</span>
+                    <input type="text" class="widget-url" readonly value="http://localhost:2137/widget/total-time">
+                    <button class="copy-btn" data-url="http://localhost:2137/widget/total-time">Copy</button>
+                    <span class="dimensions">Recommended: 600×150</span>
+                </div>
+                <div class="widget-item">
+                    <span class="widget-name">Follower Goal</span>
+                    <input type="text" class="widget-url" readonly value="http://localhost:2137/widget/goal">
+                    <button class="copy-btn" data-url="http://localhost:2137/widget/goal">Copy</button>
+                    <span class="dimensions">Recommended: 800×100</span>
+                </div>
+                <div class="widget-item">
+                    <span class="widget-name">Sound Alert</span>
+                    <input type="text" class="widget-url" readonly value="http://localhost:2137/widget/audio">
+                    <button class="copy-btn" data-url="http://localhost:2137/widget/audio">Copy</button>
+                    <span class="dimensions">Invisible (1×1)</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        console.log('Initializing Socket.io client...');
+        const socket = io();
+        console.log('Socket.io client created');
+
+        socket.on('connect', () => {
+            console.log('Successfully connected to server!');
+            console.log('Socket ID:', socket.id);
+            console.log('Socket connected:', socket.connected);
+            if (connectionStatus) {
+                connectionStatus.textContent = 'Connected';
+                connectionStatus.classList.remove('disconnected');
+                connectionStatus.classList.add('connected');
+            }
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            if (connectionStatus) {
+                connectionStatus.textContent = 'Disconnected';
+                connectionStatus.classList.remove('connected');
+                connectionStatus.classList.add('disconnected');
+            }
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
+            if (connectionStatus) {
+                connectionStatus.textContent = 'Connection Error';
+                connectionStatus.classList.remove('connected');
+                connectionStatus.classList.add('disconnected');
+            }
+        });
+        let isInitialLoad = true;
+
+        // --- DOM Elements ---
+        const connectionStatus = document.getElementById('connection-status');
+        const serverTime = document.getElementById('server-time');
+        const timerDisplay = document.getElementById('timer-display');
+        const timerStatus = document.getElementById('timer-status');
+        const startTimerBtn = document.getElementById('start-timer');
+        console.log('Start button element:', startTimerBtn);
+        const pauseResumeTimerBtn = document.getElementById('pause-resume-timer');
+        const stopResetTimerBtn = document.getElementById('stop-reset-timer');
+        const eventLog = document.getElementById('event-log');
+
+        const initialTimeInput = document.getElementById('initial-time');
+        const timePerFollowerInput = document.getElementById('time-per-follower');
+        const pollingIntervalInput = document.getElementById('polling-interval');
+
+        function saveTimerSettings() {
+            const initialTime = parseInt(initialTimeInput.value) * 60000;
+            const timePerFollower = parseInt(timePerFollowerInput.value) * 1000;
+            const pollingInterval = parseInt(pollingIntervalInput.value) * 1000;
+            socket.emit('timer-config-update', { initialTime, timePerFollower, pollingInterval });
+            addEventLog('💾 Timer settings auto-saved');
+        }
+
+        initialTimeInput.addEventListener('blur', saveTimerSettings);
+        timePerFollowerInput.addEventListener('blur', saveTimerSettings);
+        pollingIntervalInput.addEventListener('blur', saveTimerSettings);
+
+        // --- Helper Functions ---
+        function formatTime(ms) {
+            if (ms < 0) ms = 0;
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function formatDateTime(timestamp) {
+            if (!timestamp) return "Not Started";
+            return new Date(timestamp).toLocaleString();
+        }
+
+        function addEventLog(message) {
+            console.log('addEventLog called with:', message);
+            const eventLog = document.getElementById('event-log');
+            console.log('Event log element:', eventLog);
+            if (!eventLog) return;
+            
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.style.cssText = 'padding: 5px; border-bottom: 1px solid #ddd; font-size: 0.9em;';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span style="color: #888;">[${timestamp}]</span> ${message}`;
+            
+            // Insert at top
+            eventLog.insertBefore(entry, eventLog.firstChild);
+            
+            // Keep only last 50 entries
+            while (eventLog.children.length > 50) {
+              eventLog.removeChild(eventLog.lastChild);
+            }
+        }
+
+        function convertHTMLToSelector(input) {
+            if (!input || typeof input !== 'string') return input;
+            const trimmed = input.trim();
+            if (trimmed.startsWith('<') && trimmed.endsWith('>')) {
+                const tagMatch = trimmed.match(/<(\w+)/);
+                const tagName = tagMatch ? tagMatch[1] : '';
+
+                const dataTtMatch = trimmed.match(/data-tt="([^"]+)"/);
+                if (dataTtMatch) {
+                    const dataTtValue = dataTtMatch[1];
+                    const finalSelector = `${tagName}[data-tt="${dataTtValue}"]`;
+                    console.log(`Converted HTML to selector: "${finalSelector}"`);
+                    return finalSelector;
+                }
+
+                const classMatch = trimmed.match(/class="([^"]+)"/);
+                if (classMatch) {
+                    const classes = classMatch[1];
+                    const selector = classes.split(/\s+/).join('.');
+                    const finalSelector = tagName ? `${tagName}.${selector}` : `.${selector}`;
+                    console.log(`Converted HTML to selector: "${finalSelector}"`);
+                    return finalSelector;
+                }
+            }
+            // Fallback for class-only or non-html strings
+            const classOnlyMatch = trimmed.match(/^class="([^"]+)"$/);
+            if (classOnlyMatch) {
+                const classes = classOnlyMatch[1];
+                return '.' + classes.split(/\s+/).join('.');
+            }
+            return input;
+        }
+
+        function addTime(amount) {
+            socket.emit('timer-add-time', { amount });
+        }
+
+        function subtractTime(amount) {
+            socket.emit('timer-subtract-time', { amount });
+        }
+
+        function testApiKey(platform) {
+            const apiKeyInput = document.getElementById(`${platform}-api-key`);
+            if (!apiKeyInput) return;
+
+            const apiKey = apiKeyInput.value;
+            const statusEl = document.getElementById(`${platform}-api-status`);
+            if(statusEl) {
+                statusEl.textContent = '';
+                statusEl.className = 'api-status';
+            }
+
+            if (!apiKey) {
+                return;
+            }
+
+            let additionalParams = {};
+            if (platform === 'youtube') {
+                const channelUrl = document.getElementById('youtube-url').value;
+                if (!channelUrl) {
+                    alert('Please enter a YouTube Studio URL to test the API key.');
+                    return;
+                }
+                additionalParams.channelUrl = channelUrl;
+            }
+
+            addEventLog(`🔍 Testing ${platform} API key...`);
+            socket.emit('test-api-key', { platform, apiKey, ...additionalParams });
+        }
+
+        function testApiKey(platform) {
+            const apiKeyInput = document.getElementById(`${platform}-api-key`);
+            if (!apiKeyInput) return;
+
+            const apiKey = apiKeyInput.value;
+            const statusEl = document.getElementById(`${platform}-api-status`);
+            if(statusEl) {
+                statusEl.textContent = '';
+                statusEl.className = 'api-status';
+            }
+
+            if (!apiKey) {
+                return;
+            }
+
+            let additionalParams = {};
+            if (platform === 'youtube') {
+                const channelUrl = document.getElementById('youtube-url').value;
+                if (!channelUrl) {
+                    alert('Please enter a YouTube Studio URL to test the API key.');
+                    return;
+                }
+                additionalParams.channelUrl = channelUrl;
+            }
+
+            addEventLog(`🔍 Testing ${platform} API key...`);
+            socket.emit('test-api-key', { platform, apiKey, ...additionalParams });
+        }
+
+        function updateOpenUrlButtonState(platform) {
+            const urlInput = document.getElementById(`${platform}-url`);
+            const openUrlBtn = document.getElementById(`${platform}-open-url`);
+            if (urlInput && openUrlBtn) {
+                try {
+                    new URL(urlInput.value);
+                    openUrlBtn.disabled = false;
+                } catch (e) {
+                    openUrlBtn.disabled = true;
+                }
+            }
+        }
+
+        document.getElementById('add-custom-time').addEventListener('click', () => {
+            const hours = parseInt(document.getElementById('custom-hours').value) || 0;
+            const minutes = parseInt(document.getElementById('custom-minutes').value) || 0;
+            const seconds = parseInt(document.getElementById('custom-seconds').value) || 0;
+            const amount = (hours * 3600 + minutes * 60 + seconds) * 1000;
+            if (amount > 0) {
+                addTime(amount);
+            }
+        });
+
+        document.getElementById('subtract-custom-time').addEventListener('click', () => {
+            const hours = parseInt(document.getElementById('custom-hours').value) || 0;
+            const minutes = parseInt(document.getElementById('custom-minutes').value) || 0;
+            const seconds = parseInt(document.getElementById('custom-seconds').value) || 0;
+            const amount = (hours * 3600 + minutes * 60 + seconds) * 1000;
+            if (amount > 0) {
+                subtractTime(amount);
+            }
+        });
+
+        document.getElementById('reset-custom-time').addEventListener('click', () => {
+            document.getElementById('custom-hours').value = 0;
+            document.getElementById('custom-minutes').value = 0;
+            document.getElementById('custom-seconds').value = 0;
+        });
+
+        document.getElementById('clear-log').addEventListener('click', clearLog);
+        document.getElementById('export-log').addEventListener('click', exportLog);
+
+        function clearLog() {
+            const eventLog = document.getElementById('event-log');
+            eventLog.innerHTML = '';
+            addEventLog('Log cleared');
+        }
+
+        function exportLog() {
+            const eventLog = document.getElementById('event-log');
+            const logData = Array.from(eventLog.children).map(entry => entry.innerText).reverse().join('\n');
+            const blob = new Blob([logData], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `follower-fueled-timer-log-${new Date().toISOString()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            addEventLog('Log exported');
+        }
+
+        socket.on('state-update', (state) => {
+            console.log("State update received, isInitialLoad:", isInitialLoad);
+            timerDisplay.textContent = formatTime(state.timer.currentTime);
+            timerStatus.textContent = state.timer.isRunning ? (state.timer.isPaused ? 'Paused' : 'Running') : 'Stopped';
+            timerStatus.className = `timer-status-badge ${state.timer.isRunning ? (state.timer.isPaused ? 'paused' : 'running') : 'stopped'}`;
+
+            startTimerBtn.disabled = state.timer.isRunning;
+            pauseResumeTimerBtn.disabled = !state.timer.isRunning;
+            stopResetTimerBtn.disabled = !state.timer.isRunning;
+            pauseResumeTimerBtn.textContent = state.timer.isPaused ? 'Resume' : 'Pause';
+
+            if (isInitialLoad && state.config && state.config.platforms) {
+                Object.keys(state.config.platforms).forEach(platform => {
+                    const config = state.config.platforms[platform];
+                    const urlInput = document.getElementById(`${platform}-url`);
+                    const selectorInput = document.getElementById(`${platform}-selector`);
+                    const enabledCheckbox = document.getElementById(`${platform}-enabled`);
+                    const showSessionFollowersCheckbox = document.getElementById(`${platform}-show-session-followers`);
+                    const useApiCheckbox = document.getElementById(`${platform}-use-api`);
+                    const apiKeyInput = document.getElementById(`${platform}-api-key`);
+                    const accessTokenInput = document.getElementById(`${platform}-access-token`);
+                    const userIdInput = document.getElementById(`${platform}-user-id`);
+                    const pageIdInput = document.getElementById(`${platform}-page-id`);
+
+                    if (apiKeyInput) {
+                        apiKeyInput.addEventListener('input', () => {
+                            const apiStatusEl = document.getElementById(`${platform}-api-status`);
+                            if (apiStatusEl) {
+                                apiStatusEl.textContent = '';
+                                apiStatusEl.className = 'api-status';
+                            }
+                        });
+                        apiKeyInput.addEventListener('blur', () => testApiKey(platform));
+                    }
+                    if (urlInput) urlInput.value = config.url || '';
+                    if (selectorInput) selectorInput.value = config.selector || '';
+                    if (enabledCheckbox) enabledCheckbox.checked = config.enabled || false;
+                    if (showSessionFollowersCheckbox) showSessionFollowersCheckbox.checked = config.showSessionFollowers !== false;
+                    if (useApiCheckbox) {
+                        useApiCheckbox.checked = config.useApi || false;
+                        const platformCard = useApiCheckbox.closest('.platform-card');
+                        const apiOnlyFields = platformCard.querySelectorAll('.api-only');
+                        apiOnlyFields.forEach(field => {
+                            field.style.display = useApiCheckbox.checked ? 'block' : 'none';
+                        });
+                        if (selectorInput) {
+                            selectorInput.disabled = useApiCheckbox.checked;
+                        }
+                    }
+                    if (apiKeyInput) apiKeyInput.value = config.apiKey || '';
+                    if (accessTokenInput) accessTokenInput.value = config.accessToken || '';
+                    if (userIdInput) userIdInput.value = config.userId || '';
+                    if (pageIdInput) pageIdInput.value = config.pageId || '';
+                    updateOpenUrlButtonState(platform);
+                });
+
+                const initialTimeInput = document.getElementById('initial-time');
+                const timePerFollowerInput = document.getElementById('time-per-follower');
+                const pollingIntervalInput = document.getElementById('polling-interval');
+
+                if (initialTimeInput && state.config.initialTime) {
+                    initialTimeInput.value = state.config.initialTime / 60000;
+                } else if (initialTimeInput) {
+                    initialTimeInput.value = 60;
+                }
+                if (timePerFollowerInput && state.config.timePerFollower) {
+                    timePerFollowerInput.value = state.config.timePerFollower / 1000;
+                } else if (timePerFollowerInput) {
+                    timePerFollowerInput.value = 30;
+                }
+                if (pollingIntervalInput && state.config.polling && state.config.polling.interval) {
+                    pollingIntervalInput.value = state.config.polling.interval / 1000;
+                } else if (pollingIntervalInput) {
+                    pollingIntervalInput.value = 10;
+                }
+
+                const followerGoalInput = document.getElementById('follower-goal');
+                const soundEnabledCheckbox = document.getElementById('sound-enabled');
+                const soundVolumeSlider = document.getElementById('sound-volume');
+
+                if (followerGoalInput && state.config.goal) {
+                    followerGoalInput.value = state.config.goal;
+                }
+                if (soundEnabledCheckbox && state.config.customization) {
+                    soundEnabledCheckbox.checked = state.config.customization.soundEnabled;
+                }
+                if (soundVolumeSlider && state.config.customization) {
+                    soundVolumeSlider.value = state.config.customization.soundVolume;
+                }
+
+                const totalFollowersModeSelect = document.getElementById('total-followers-mode');
+                const totalFollowersShowDiffCheckbox = document.getElementById('total-followers-show-diff');
+                const followerGoalModeSelect = document.getElementById('follower-goal-mode');
+
+                if (totalFollowersModeSelect && state.config.customization && state.config.customization.totalFollowers) {
+                    totalFollowersModeSelect.value = state.config.customization.totalFollowers.mode;
+                }
+                if (totalFollowersShowDiffCheckbox && state.config.customization && state.config.customization.totalFollowers) {
+                    totalFollowersShowDiffCheckbox.checked = state.config.customization.totalFollowers.showSessionDiff;
+                }
+                if (followerGoalModeSelect && state.config.customization && state.config.customization.followerGoal) {
+                    followerGoalModeSelect.value = state.config.customization.followerGoal.mode;
+                }
+
+                isInitialLoad = false;
+            }
+            
+            document.getElementById('session-followers').textContent = state.totalSessionFollowers;
+            document.getElementById('session-time-added').textContent = formatTime(state.totalSessionTimeAdded);
+            document.getElementById('session-start-time').textContent = formatDateTime(state.sessionStartTime);
+
+            if (state.platformStats) {
+                Object.keys(state.platformStats).forEach(platform => {
+                    const stats = state.platformStats[platform];
+                    const countEl = document.getElementById(`${platform}-count`);
+                    if (countEl) {
+                        countEl.textContent = stats.total || '--';
+                    }
+                    const sessionEl = document.getElementById(`${platform}-session-count`);
+                    if (sessionEl) {
+                        sessionEl.textContent = `(+${stats.sessionNew || 0} this session)`;
+                    }
+                    const apiStatusEl = document.getElementById(`${platform}-api-status`);
+                    if (apiStatusEl) {
+                        if (state.config.platforms[platform].useApi && state.config.platforms[platform].apiKey) {
+                            if (stats.error && stats.source === 'api') { // Only show API error if it's from the API source
+                                apiStatusEl.textContent = 'API Error';
+                                apiStatusEl.className = 'api-status error';
+                            } else if (isInitialLoad && stats.source === 'api' && !stats.error) {
+                                // On initial load, if we have a successful API fetch, show it.
+                                // This will be cleared if the user changes the key.
+                                apiStatusEl.textContent = 'API OK';
+                                apiStatusEl.className = 'api-status ok';
+                            }
+                        } else {
+                            apiStatusEl.textContent = '';
+                        }
+                    }
+                });
+            }
+        });
+
+        startTimerBtn.addEventListener('click', () => {
+            let hasError = false;
+            ['initial-time', 'time-per-follower', 'polling-interval'].forEach(id => {
+                const input = document.getElementById(id);
+                if (!input.value) {
+                    input.classList.add('input-error');
+                    hasError = true;
+                } else {
+                    input.classList.remove('input-error');
+                }
+            });
+
+            ['youtube', 'tiktok', 'instagram', 'facebook'].forEach(platform => {
+                const enabledCheckbox = document.getElementById(`${platform}-enabled`);
+                if (enabledCheckbox.checked) {
+                    const useApiCheckbox = document.getElementById(`${platform}-use-api`);
+                    if (useApiCheckbox && useApiCheckbox.checked) {
+                        const apiKeyInput = document.getElementById(`${platform}-api-key`);
+                        if (apiKeyInput && !apiKeyInput.value) {
+                            apiKeyInput.classList.add('input-error');
+                            hasError = true;
+                        } else if (apiKeyInput) {
+                            apiKeyInput.classList.remove('input-error');
+                        }
+                        if (platform === 'youtube') {
+                            const urlInput = document.getElementById('youtube-url');
+                            if (urlInput && !urlInput.value) {
+                                urlInput.classList.add('input-error');
+                                hasError = true;
+                            } else if (urlInput) {
+                                urlInput.classList.remove('input-error');
+                            }
+                        } else if (platform === 'instagram') {
+                            const urlInput = document.getElementById('instagram-url');
+                            if (urlInput && !urlInput.value) {
+                                urlInput.classList.add('input-error');
+                                hasError = true;
+                            } else if (urlInput) {
+                                urlInput.classList.remove('input-error');
+                            }
+                        } else if (platform === 'facebook') {
+                            const urlInput = document.getElementById('facebook-url');
+                            if (urlInput && !urlInput.value) {
+                                urlInput.classList.add('input-error');
+                                hasError = true;
+                            } else if (urlInput) {
+                                urlInput.classList.remove('input-error');
+                            }
+                        }
+                    } else {
+                        const urlInput = document.getElementById(`${platform}-url`);
+                        const selectorInput = document.getElementById(`${platform}-selector`);
+                        if (urlInput && !urlInput.value) {
+                            urlInput.classList.add('input-error');
+                            hasError = true;
+                        } else if (urlInput) {
+                            urlInput.classList.remove('input-error');
+                        }
+                        if (selectorInput && !selectorInput.value) {
+                            selectorInput.classList.add('input-error');
+                            hasError = true;
+                        } else if (selectorInput) {
+                            selectorInput.classList.remove('input-error');
+                        }
+                    }
+                }
+            });
+
+            if (hasError) {
+                addEventLog('❌ Please fill out all required fields for enabled platforms.');
+                return;
+            }
+
+            console.log('CLICK EVENT FIRED');
+            const initialTime = parseInt(document.getElementById('initial-time').value) * 60000;
+            const data = { initialTime };
+            console.log('Emitting timer-start with:', data);
+            socket.emit('timer-start', data);
+            addEventLog('🚀 Timer started');
+        });
+        console.log('Start button listener attached');
+
+        pauseResumeTimerBtn.addEventListener('click', () => {
+            if (pauseResumeTimerBtn.textContent === 'Pause') {
+                socket.emit('timer-pause');
+                addEventLog('⏸️ Timer paused');
+            } else {
+                socket.emit('timer-resume');
+                addEventLog('▶️ Timer resumed');
+            }
+        });
+
+        stopResetTimerBtn.addEventListener('click', () => {
+            socket.emit('timer-stop');
+            addEventLog('⏹️ Timer stopped');
+        });
+
+        document.getElementById('reset-session').addEventListener('click', () => {
+            if (confirm('Are you sure you want to reset the session? This will stop the timer and clear all session stats.')) {
+                socket.emit('session-reset');
+                addEventLog('🔄 Session reset');
+            }
+        });
+
+        const followerGoalInput = document.getElementById('follower-goal');
+        const soundEnabledCheckbox = document.getElementById('sound-enabled');
+        const soundVolumeSlider = document.getElementById('sound-volume');
+
+        soundVolumeSlider.addEventListener('input', () => {
+            const soundEnabledCheckbox = document.getElementById('sound-enabled');
+            if (soundEnabledCheckbox.checked) {
+                const audio = document.getElementById('alert-sound');
+                audio.volume = soundVolumeSlider.value / 100;
+                audio.play().catch(e => console.error("Audio play failed:", e));
+            }
+        });
+
+        soundEnabledCheckbox.addEventListener('change', () => {
+            const message = soundEnabledCheckbox.checked ? '🔊 Sound alerts enabled' : '🔇 Sound alerts disabled';
+            addEventLog(message);
+        });
+
+        const soundUploads = [
+            { event: 'newFollower', inputId: 'new-follower-sound-upload', resetId: 'reset-new-follower-sound' },
+            { event: 'goalAchieved', inputId: 'goal-achieved-sound-upload', resetId: 'reset-goal-achieved-sound' },
+            { event: 'timerEnd', inputId: 'timer-end-sound-upload', resetId: 'reset-timer-end-sound' },
+        ];
+
+        soundUploads.forEach(({ event, inputId, resetId }) => {
+            const input = document.getElementById(inputId);
+            const reset = document.getElementById(resetId);
+
+            input.addEventListener('change', () => {
+                const file = input.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const soundData = e.target.result;
+                        socket.emit('sound-upload', { event, soundData, fileName: file.name });
+                        addEventLog(`🎵 Custom sound for ${event} uploaded`);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            reset.addEventListener('click', () => {
+                input.value = '';
+                socket.emit('sound-reset', { event });
+                addEventLog(`🎵 Sound for ${event} reset to default`);
+            });
+        });
+
+        const totalFollowersModeSelect = document.getElementById('total-followers-mode');
+        const totalFollowersShowDiffCheckbox = document.getElementById('total-followers-show-diff');
+        const followerGoalModeSelect = document.getElementById('follower-goal-mode');
+
+        function saveTotalFollowersSettings() {
+            const mode = totalFollowersModeSelect.value;
+            const showSessionDiff = totalFollowersShowDiffCheckbox.checked;
+            socket.emit('total-followers-config-update', { mode, showSessionDiff });
+            addEventLog('🔧 \"Total Followers\" widget settings saved');
+        }
+
+        totalFollowersModeSelect.addEventListener('change', saveTotalFollowersSettings);
+        totalFollowersShowDiffCheckbox.addEventListener('change', saveTotalFollowersSettings);
+
+        followerGoalModeSelect.addEventListener('change', () => {
+            const mode = followerGoalModeSelect.value;
+            socket.emit('follower-goal-config-update', { mode });
+            addEventLog('🔧 \"Follower Goal\" widget settings saved');
+        });
+
+                const platformUpdaters = {};
+                ['youtube', 'tiktok', 'instagram', 'facebook'].forEach(platform => {
+                    const card = document.getElementById(`${platform}-enabled`).closest('.platform-card');
+                    const urlInput = card.querySelector(`#${platform}-url`);
+                    const selectorInput = card.querySelector(`#${platform}-selector`);
+                    const enabledCheckbox = card.querySelector(`#${platform}-enabled`);
+                    const showSessionFollowersCheckbox = card.querySelector(`#${platform}-show-session-followers`);
+                    const useApiCheckbox = card.querySelector(`#${platform}-use-api`);
+                    const apiKeyInput = card.querySelector(`#${platform}-api-key`);
+                    const accessTokenInput = card.querySelector(`#${platform}-access-token`);
+                    const userIdInput = card.querySelector(`#${platform}-user-id`);
+                    const pageIdInput = card.querySelector(`#${platform}-page-id`);
+        
+                    const update = () => {
+                        const url = urlInput.value;
+                        const selector = selectorInput.value;
+                        const enabled = enabledCheckbox.checked;
+                        const showSessionFollowers = showSessionFollowersCheckbox.checked;
+                        const useApi = useApiCheckbox ? useApiCheckbox.checked : false;
+                        const apiKey = apiKeyInput ? apiKeyInput.value : '';
+                        const accessToken = accessTokenInput ? accessTokenInput.value : '';
+                        const userId = userIdInput ? userIdInput.value : '';
+                        const pageId = pageIdInput ? pageIdInput.value : '';
+                        socket.emit('platform-config-update', { platform, url, selector, enabled, showSessionFollowers, useApi, apiKey, accessToken, userId, pageId });
+                        addEventLog(`💾 ${platform} configuration auto-saved`);
+                    };
+        
+                    platformUpdaters[platform] = update;
+        
+                    card.addEventListener('change', (event) => {
+                        if (event.target.type === 'checkbox' || event.target.type === 'file') {
+                            update();
+                        }
+                    });
+        
+                    card.addEventListener('blur', (event) => {
+                        if (event.target.type === 'text' || event.target.type === 'number' || event.target.tagName.toLowerCase() === 'select') {
+                            update();
+                        }
+                    }, true);
+        
+                    if (useApiCheckbox) {
+                        useApiCheckbox.addEventListener('change', () => {
+                            const apiOnlyFields = card.querySelectorAll('.api-only');
+                            apiOnlyFields.forEach(field => {
+                                field.style.display = useApiCheckbox.checked ? 'block' : 'none';
+                            });
+                            selectorInput.disabled = useApiCheckbox.checked;
+                        });
+                    }
+        
+                    selectorInput.addEventListener('blur', function() {
+                        const original = this.value;
+                        const converted = convertHTMLToSelector(original);
+                        if (converted !== original) {
+                            this.value = converted;
+                            addEventLog(`✓ Auto-converted ${platform} selector from HTML`);
+                        }
+                    });
+        
+                    const saveBtn = document.getElementById(`${platform}-save`);
+                    if (saveBtn) {
+                        saveBtn.style.display = 'none'; // Hide the save button
+                    }
+        
+                    document.getElementById(`${platform}-test`).addEventListener('click', () => {
+                        const url = document.getElementById(`${platform}-url`).value;
+                        const selector = document.getElementById(`${platform}-selector`).value;
+                        if (!url || !selector) {
+                            alert('Please enter both URL and selector');
+                            return;
+                        }
+                        addEventLog(`🔍 Testing ${platform} selector...`);
+                        socket.emit('test-platform-selector', { platform, url, selector });
+                    });
+        
+                    const autofillBtn = document.getElementById(`${platform}-autofill`);
+                                if(autofillBtn) {
+                                    autofillBtn.addEventListener('click', () => {
+                                        addEventLog(`🔍 Auto-detecting ${platform} URL...`);
+                                        socket.emit('auto-fill-url', { platform });
+                                    });
+                                }
+                    
+        
+        
+                    const openUrlBtn = document.getElementById(`${platform}-open-url`);
+                    if(openUrlBtn) {
+                        urlInput.addEventListener('input', () => updateOpenUrlButtonState(platform));
+                        openUrlBtn.addEventListener('click', () => {
+                            window.open(urlInput.value, '_blank');
+                        });
+                    }
+        
+                    const logoUploadInput = document.getElementById(`${platform}-logo-upload`);
+                    const logoResetBtn = document.getElementById(`${platform}-logo-reset`);
+        
+                    logoUploadInput.addEventListener('change', () => {
+                        const file = logoUploadInput.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const logoData = e.target.result;
+                                socket.emit('platform-logo-upload', { platform, logoData, fileName: file.name });
+                                addEventLog(`🖼️ ${platform} logo uploaded`);
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+        
+                    logoResetBtn.addEventListener('click', () => {
+                        logoUploadInput.value = ''; // Clear the file input
+                        socket.emit('platform-logo-reset', { platform });
+                        addEventLog(`🖼️ ${platform} logo reset`);
+                    });
+                });
+        socket.on('test-selector-result', (result) => {
+            console.log('Test result received:', result);
+            const { platform, success, followerCount, message, error } = result;
+            const platformName = platform ? platform.charAt(0).toUpperCase() + platform.slice(1) : 'Unknown';
+            if (success) {
+                console.log('Calling addEventLog for test success');
+                addEventLog(`✅ ${platformName} test successful: ${followerCount} followers found`);
+                console.log('Event log updated');
+                alert(`Test Successful!\n\nPlatform: ${platformName}\nFollower Count: ${followerCount}`);
+            } else {
+                addEventLog(`❌ ${platformName} test failed: ${error || message}`);
+                alert(`Test Failed\n\nPlatform: ${platformName}\n${error || message}`);
+            }
+        });
+
+        socket.on('test-api-key-result', (result) => {
+            const { platform, success, error } = result;
+            const apiStatusEl = document.getElementById(`${platform}-api-status`);
+            if (apiStatusEl) {
+                if (success) {
+                    apiStatusEl.textContent = 'API OK';
+                    apiStatusEl.className = 'api-status ok';
+                } else {
+                    apiStatusEl.textContent = 'API Error';
+                    apiStatusEl.className = 'api-status error';
+                    addEventLog(`❌ ${platform} API test failed: ${error}`);
+                }
+            }
+        });
+
+        socket.on('auto-fill-url-result', (result) => {
+            console.log('Auto-fill result:', result);
+            const { platform, url, success, error } = result;
+            const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
+            if (success && url) {
+                const urlInput = document.getElementById(`${platform}-url`);
+                if (urlInput) {
+                    urlInput.value = url;
+                    platformUpdaters[platform](); // Save config
+                    urlInput.dispatchEvent(new Event('input'));
+                }
+                addEventLog(`✅ ${platformName} URL auto-filled successfully`);
+            } else {
+                addEventLog(`❌ ${platformName} auto-fill failed: ${error}`);
+                const card = document.getElementById(`${platform}-url`)?.closest('.card');
+                if (card) {
+                    let errorEl = card.querySelector('.auto-fill-error');
+                    if (!errorEl) {
+                        errorEl = document.createElement('div');
+                        errorEl.className = 'auto-fill-error';
+                        errorEl.style.cssText = 'color: #f44336; font-size: 0.85em; margin-top: 5px; padding: 5px; background: #ffebee; border-radius: 3px;';
+                        card.querySelector('.form-group').appendChild(errorEl);
+                    }
+                    errorEl.textContent = `❌ Auto-fill failed: ${error}`;
+                    setTimeout(() => {
+                        errorEl.remove();
+                    }, 10000);
+                }
+            }
+        });
+
+
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const url = this.dataset.url;
+                const unsecuredCopyToClipboard = (text) => {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                    } catch (err) {
+                        console.error('Fallback: Oops, unable to copy', err);
+                    }
+                    document.body.removeChild(textArea);
+                };
+
+                if (window.isSecureContext && navigator.clipboard) {
+                    navigator.clipboard.writeText(url).then(() => {
+                        this.textContent = 'Copied!';
+                        this.style.background = '#4CAF50';
+                        setTimeout(() => {
+                            this.textContent = 'Copy';
+                            this.style.background = '#2196F3';
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Async: Could not copy text: ', err);
+                        unsecuredCopyToClipboard(url);
+                        this.textContent = 'Copied!';
+                        this.style.background = '#4CAF50';
+                        setTimeout(() => {
+                            this.textContent = 'Copy';
+                            this.style.background = '#2196F3';
+                        }, 2000);
+                    });
+                } else {
+                    unsecuredCopyToClipboard(url);
+                    this.textContent = 'Copied!';
+                    this.style.background = '#4CAF50';
+                    setTimeout(() => {
+                        this.textContent = 'Copy';
+                        this.style.background = '#2196F3';
+                    }, 2000);
+                }
+            });
+        });
+    </script>
+    <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 0.8em; color: #888;">
+        <p>Developed by PanicDevelopment. If you find this tool useful, please consider supporting its development.</p>
+        <p>
+            <a href="https://www.youtube.com/@TravelInPanic" target="_blank">YouTube</a> |
+            <a href="https://github.com/PanicDevelopment" target="_blank">GitHub</a> |
+        <a href="https://play.google.com/store/apps/developer?id=Panic+Development" target="_blank">Android Apps</a> |
+            <a href="https://ko-fi.com/TravelInPanic" target="_blank">Ko-Fi</a> |
+            <a href="https://www.paypal.me/PrzemekZK" target="_blank">PayPal</a> |
+            <a href="https://www.revolut.me/przemyr1r" target="_blank">Revolut</a> |
+            <a href="https://commerce.coinbase.com/checkout/9f70e8c5-3894-4983-a8da-6663352129b8" target="_blank">Crypto</a>
+        </p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,12 @@
+node_modules/
+user-data/
+.env
+*.log
+public/platform-logos/
+config.json
+session.json
+config.json.enc
+
+GEMINI.md
+PROJECT_STRUCTURE.md
+POST.md
