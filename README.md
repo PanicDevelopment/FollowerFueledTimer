@@ -1,7 +1,7 @@
 # Follower-Fueled Timer
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/PanicDevelopment/FollowerFueledTimer/master/public/icon.png" width="128" alt="Follower-Fueled Timer Logo">
+  <img src="https://github.com/user-attachments/assets/b241d80c-31e7-43df-883a-7ec82286cfb1" width="128" alt="Follower-Fueled Timer Logo">
 </p>
 
 <p align="center">
@@ -9,6 +9,8 @@
 </p>
 
 ---
+
+<p align="center"><img width="800" alt="Control Panel Screenshot" src="https://github.com/user-attachments/assets/759dc4a6-c87d-4183-acc7-39c8fbdf8ae4"></p>
 
 ## Table of Contents
 
